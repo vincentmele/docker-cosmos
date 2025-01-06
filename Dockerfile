@@ -1,36 +1,22 @@
-FROM golang:1.18-alpine AS buildenv
+#FROM gcr.io/distroless/static-debian12
+FROM debian:12-slim
 
-ENV PACKAGES curl make git libc-dev bash gcc linux-headers eudev-dev
-ENV VERSION v7.0.3
-
-# Set up dependencies
-RUN apk add --update --no-cache $PACKAGES
-
-# Set working directory for the build
-WORKDIR /go/src/github.com/cosmos/
-
-# Add source files
-RUN git clone --recursive https://www.github.com/cosmos/gaia
-WORKDIR /go/src/github.com/cosmos/gaia
-
-RUN git checkout $VERSION
-
-RUN make install
-
-# ------------------------------------------------------------------ #
-
-FROM alpine:edge
+ENV VERSION v19.1.0-linux-amd64
+ENV PACKAGES wget supervisor lz4 gzip
 
 ENV GAIAD_HOME=/.gaiad
 
+
+RUN apt-get update && apt-get install -y ${PACKAGES} && apt-get clean && apt-get autoclean
 # Install ca-certificates
-RUN apk add --no-cache --update ca-certificates py3-setuptools supervisor wget lz4 gzip
+#RUN apk add --no-cache --update ca-certificates py3-setuptools supervisor wget lz4 gzip
 
 # Temp directory for copying binaries
 RUN mkdir -p /tmp/bin
 WORKDIR /tmp/bin
 
-COPY --from=buildenv /go/bin/gaiad /tmp/bin
+ADD https://github.com/cosmos/gaia/releases/download/v19.1.0/gaiad-${VERSION} /tmp/bin/gaiad
+
 RUN install -m 0755 -o root -g root -t /usr/local/bin gaiad
 
 # Remove temp files
